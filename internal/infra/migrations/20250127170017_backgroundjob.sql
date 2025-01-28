@@ -10,7 +10,8 @@ CREATE TABLE jobs
     handler        TEXT NOT NULL,
     interval       INT  NOT NULL,
     status         TEXT NOT NULL,
-    last_triggered TIMESTAMP
+    last_triggered TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX idx_jobs_status ON jobs (status);
 CREATE INDEX idx_jobs_last_triggered ON jobs (last_triggered);

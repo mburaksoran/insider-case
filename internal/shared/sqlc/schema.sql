@@ -13,8 +13,9 @@ CREATE INDEX idx_jobs_last_triggered ON jobs (last_triggered);
 
 CREATE TABLE messages (
                           id UUID PRIMARY KEY,
-                          content TEXT NOT NULL,--content lenght is importante so make it 200
+                          content VARCHAR(200) NOT NULL,
                           recipient_phone_number TEXT NOT NULL,
                           status TEXT NOT NULL,
-                          message_received_id UUID
+                          message_received_id UUID,
+                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -119,7 +119,7 @@ const getNotSendedMessages = `-- name: GetNotSendedMessages :many
 SELECT id, content, recipient_phone_number, status, message_received_id
 FROM messages
 WHERE status = 'pending'
-ORDER BY id ASC
+ORDER BY created_at ASC
     LIMIT 2
 FOR UPDATE SKIP LOCKED
 `

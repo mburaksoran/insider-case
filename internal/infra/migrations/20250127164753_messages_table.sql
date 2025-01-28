@@ -7,7 +7,8 @@ CREATE TABLE messages
     content                VARCHAR(200) NOT NULL,
     recipient_phone_number TEXT         NOT NULL,
     status                 TEXT         NOT NULL,
-    message_received_id    UUID
+    message_received_id    UUID,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 INSERT INTO messages (id ,content, recipient_phone_number, status)
