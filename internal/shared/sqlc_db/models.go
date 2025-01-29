@@ -25,4 +25,5 @@ type Message struct {
 	RecipientPhoneNumber string
 	Status               string
 	MessageReceivedID    uuid.NullUUID
+	CreatedAt            sql.NullTime
 }

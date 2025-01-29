@@ -1,0 +1,177 @@
+version: '3.7'
+
+services:
+  vault:
+    image: hashicorp/vault:latest
+    container_name: vault
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=root
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+      - VAULT_DEV_SERVER_MODE=true
+    ports:
+      - "8200:8200"
+    volumes:
+      - vault_data:/vault/file
+    cap_add:
+      - IPC_LOCK # Vault için belleği kilitleme izni
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+
+  vault-init:
+    image: curlimages/curl
+    depends_on:
+      - vault
+    entrypoint: >
+      /bin/sh -c "
+        echo 'Waiting for Vault to be ready...';
+        sleep 5;
+        curl --header 'X-Vault-Token: root' --request POST --data '{
+          \"data\": {
+            \"http_client_config\": {
+              \"api_key\": \"INS.me1x9uMcyYGlhKKQVPoc.bO3j9aZwRTOcA2Ywo\",
+              \"http_client_url\": \"https://webhook.site/b9964560-3f19-4ada-a50e-6f1ec2e07f86\"
+            },
+            \"postgres_config\": {
+              \"sql_database_name\": \"postgres\",
+              \"sql_host\": \"postgres\",
+              \"sql_password\": \"mypassword\",
+              \"sql_port\": \"5432\",
+              \"sql_ssl_mode\": \"disable\",
+              \"sql_user\": \"postgres\"
+            },
+            \"redis_config\": {
+              \"redis_host\": \"redis\",
+              \"redis_password\": \"root\",
+              \"redis_port\": \"6379\"
+            },
+            \"worker_pool\": {
+              \"channel_size\": 100,
+              \"worker_count\": 10
+            }
+          }
+        }' http://vault:8200/v1/secret/data/app_config;
+        echo 'Secrets written to Vault!';
+      "
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres_db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+      - HTTP_USER=root
+      - HTTP_PASSWORD=qwerty
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:latest
+    command: redis-server
+    volumes:
+      - redis:/var/lib/redis
+      - redis-config:/usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./configuration/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./configuration/grafana/provisioning/datasource/prometheus.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./configuration/grafana/provisioning/dashboards/provider.yml:/etc/grafana/provisioning/dashboards/provider.yml
+      - ./configuration/grafana/dashboards:/var/lib/grafana/dashboards/
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_DEFAULT_ORG_ID=1
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./configuration/loki-config.yml:/etc/loki/local-config.yaml
+
+  insider-case:
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+    restart: on-failure
+    environment:
+      - GOOSE_DRIVER=postgres
+      - GOOSE_DBSTRING=postgres://postgres:mypassword@localhost:5432/postgres?sslmode\=disable
+      - GOOSE_MIGRATION_DIR=./internal/infra/migrations
+    ports:
+      - "8080:8080"
+    depends_on:
+      - vault-init
+      - postgres
+
+  minio:
+    image: minio/minio
+    entrypoint:
+      - sh
+      - -euc
+      - |
+        mkdir -p /data/loki-data && \
+        mkdir -p /data/loki-ruler && \
+        minio server /data
+    environment:
+      - MINIO_ROOT_USER=loki
+      - MINIO_ROOT_PASSWORD=supersecret
+      - MINIO_PROMETHEUS_AUTH_TYPE=public
+      - MINIO_UPDATE=off
+    ports:
+      - 9000
+    volumes:
+      - ./.data/minio:/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 15s
+      timeout: 20s
+      retries: 5
+
+volumes:
+  vault_data:
+    driver: local
+  postgres_data:
+    driver: local
+  grafana-storage:
+  redis:
+  redis-config:
+
+
+
+
+

@@ -2,14 +2,15 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/mburaksoran/insider-case/internal/domain/types"
+	"github.com/pkg/errors"
+
 	"github.com/mburaksoran/insider-case/internal/app/service"
 	"github.com/mburaksoran/insider-case/internal/domain/models"
 	"github.com/mburaksoran/insider-case/internal/domain/repository"
 	"github.com/mburaksoran/insider-case/internal/shared/sqlc_db"
-	"log"
 )
 
 type backgroundJobService struct {
@@ -27,8 +28,7 @@ func (s *backgroundJobService) CreateJob(ctx context.Context, job models.Backgro
 	_, err := s.backgroundJobRepository.WithoutTransaction(ctx, func(queries *sqlc_db.Queries) (interface{}, error) {
 		result, err := s.backgroundJobRepository.CreateJob(ctx, queries, job)
 		if err != nil {
-			log.Printf("Error while creating Job: %v", err)
-			return nil, err
+			return nil, errors.Wrapf(err, "[GetSendMessage] - GetSendMessages Error")
 		}
 		return result, nil
 	})
@@ -36,20 +36,19 @@ func (s *backgroundJobService) CreateJob(ctx context.Context, job models.Backgro
 	return err
 }
 
-func (s *backgroundJobService) GetActiveJobs(ctx context.Context) ([]*models.BackgroundJob, error) {
+func (s *backgroundJobService) GetActiveJobsForBackgroundService(ctx context.Context) ([]*models.BackgroundJob, error) {
 	result, err := s.backgroundJobRepository.WithTransaction(ctx, func(q *sqlc_db.Queries) (interface{}, error) {
-		jobs, err := s.backgroundJobRepository.GetActiveJobs(ctx, q)
+		jobs, err := s.backgroundJobRepository.GetActiveJobsForBackgroundService(ctx, q)
 		if err != nil {
-			log.Printf("Error while getting active jobs: %v", err)
-			return nil, err
+			return nil, errors.Wrapf(err, "[GetActiveJobsForBackgroundService] - GetActiveJobsForBackgroundService Error")
 		}
 		if len(jobs) < 1 {
 			return nil, nil
 		}
 		for _, job := range jobs {
-			updateErr := s.backgroundJobRepository.UpdateJobStatus(ctx, q, job.ID, "processing") //TODO create new const for status
+			updateErr := s.backgroundJobRepository.UpdateJobStatus(ctx, q, job.ID, types.BackgroundJobStatusInProgress)
 			if updateErr != nil {
-				return nil, errors.New(fmt.Sprintf("errors while updating job status JobId: %s error: %s", job.ID, err.Error()))
+				return nil, errors.Wrapf(err, fmt.Sprintf("[UpdateJobStatus] - UpdateJobStatus Error JobId: %s", job.ID))
 			}
 		}
 		return jobs, nil
@@ -71,16 +70,53 @@ func (s *backgroundJobService) ActivateJob(ctx context.Context, id uuid.UUID, st
 	_, err := s.backgroundJobRepository.WithoutTransaction(ctx, func(queries *sqlc_db.Queries) (interface{}, error) {
 		err := s.backgroundJobRepository.UpdateJobStatus(ctx, queries, id, status)
 		if err != nil {
-			log.Printf("Error while status Job: %v", err)
-			return nil, err
+			return nil, errors.Wrapf(err, "[ActivateJob] - UpdateJobStatus Error")
 		}
 		err = s.backgroundJobRepository.UpdateJobLastTriggeredTime(ctx, queries, id)
 		if err != nil {
-			log.Printf("Error while updating last triggered at Job: %v", err)
-			return nil, err
+			return nil, errors.Wrapf(err, "[ActivateJob] - UpdateJobLastTriggeredTime Error")
 		}
 		return nil, nil
 	})
 
 	return err
+}
+
+func (s *backgroundJobService) UpdateJob(ctx context.Context, id uuid.UUID, status string) error {
+	_, err := s.backgroundJobRepository.WithoutTransaction(ctx, func(queries *sqlc_db.Queries) (interface{}, error) {
+		err := s.backgroundJobRepository.UpdateJobStatus(ctx, queries, id, status)
+		if err != nil {
+
+			return nil, errors.Wrapf(err, "[UpdateJob] - UpdateJobStatus Error")
+		}
+		return nil, nil
+	})
+
+	return err
+}
+func (s *backgroundJobService) UpdateAllJobsStatus(ctx context.Context, status string) error {
+	_, err := s.backgroundJobRepository.WithoutTransaction(ctx, func(queries *sqlc_db.Queries) (interface{}, error) {
+		err := s.backgroundJobRepository.UpdateAllJobsStatus(ctx, queries, status)
+		if err != nil {
+			return nil, errors.Wrapf(err, "[UpdateAllJobsStatus] - UpdateAllJobsStatus Error")
+		}
+		return nil, nil
+	})
+
+	return err
+}
+func (s *backgroundJobService) GetJobs(ctx context.Context) ([]*models.BackgroundJob, error) {
+	res, err := s.backgroundJobRepository.WithoutTransaction(ctx, func(queries *sqlc_db.Queries) (interface{}, error) {
+		result, err := s.backgroundJobRepository.GetJobs(ctx, queries)
+		if err != nil {
+			return nil, errors.Wrapf(err, "[GetJobs] - GetJobs Error")
+		}
+		return result, nil
+	})
+	var jobList []*models.BackgroundJob
+	if res != nil {
+		jobList = res.([]*models.BackgroundJob)
+		return jobList, err
+	}
+	return nil, nil
 }

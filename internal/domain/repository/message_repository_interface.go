@@ -13,4 +13,5 @@ type MessageRepositoryInterface interface {
 	UpdateMessageStatus(ctx context.Context, queries *sqlc_db.Queries, id uuid.UUID, status string) error
 	WithTransaction(ctx context.Context, fn func(*sqlc_db.Queries) (interface{}, error)) (interface{}, error)
 	WithoutTransaction(ctx context.Context, fn func(*sqlc_db.Queries) (interface{}, error)) (interface{}, error)
+	GetSendMessages(ctx context.Context, queries *sqlc_db.Queries) ([]*models.Message, error)
 }

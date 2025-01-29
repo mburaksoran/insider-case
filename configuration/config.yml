@@ -1,0 +1,3 @@
+vault_address: "http://vault:8200"
+vault_token: "root"
+vault_path: "/secret/data/app_config"

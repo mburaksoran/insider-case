@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"github.com/pkg/errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,15 +31,16 @@ func (r *backgroundJobRepository) CreateJob(ctx context.Context, queries *sqlc_d
 	})
 
 	if err != nil {
-		return false, err
+		return false, errors.Wrapf(err, "[CreateJob] - CreateJob Error")
 	}
 	return true, nil
 }
 
-func (r *backgroundJobRepository) GetActiveJobs(ctx context.Context, queries *sqlc_db.Queries) ([]*models.BackgroundJob, error) {
+// It should only be used in background jobs because it change the status after pulling jobs
+func (r *backgroundJobRepository) GetActiveJobsForBackgroundService(ctx context.Context, queries *sqlc_db.Queries) ([]*models.BackgroundJob, error) {
 	list, err := queries.GetDueJobs(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "[GetActiveJobsForBackgroundService] - GetDueJobs Error")
 	}
 	if len(list) < 1 {
 		return nil, nil
@@ -71,7 +73,7 @@ func (r *backgroundJobRepository) UpdateJobLastTriggeredTime(ctx context.Context
 	})
 
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "[UpdateJobLastTriggeredTime] - UpdateJobLastTriggered Error")
 	}
 
 	return nil
@@ -85,10 +87,41 @@ func (r *backgroundJobRepository) UpdateJobStatus(ctx context.Context, queries *
 	})
 
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "[UpdateJobStatus] - UpdateJobStatus Error")
 	}
 
 	return nil
+}
+
+func (r *backgroundJobRepository) UpdateAllJobsStatus(ctx context.Context, queries *sqlc_db.Queries, status string) error {
+
+	err := queries.UpdateAllJobsStatus(ctx, status)
+	if err != nil {
+		return errors.Wrapf(err, "[UpdateAllJobsStatus] - UpdateAllJobsStatus Error")
+	}
+	return nil
+}
+
+func (r *backgroundJobRepository) GetJobs(ctx context.Context, queries *sqlc_db.Queries) ([]*models.BackgroundJob, error) {
+
+	result, err := queries.GetJobs(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "[GetJobs] - GetJobs Error")
+	}
+	var jobList []*models.BackgroundJob
+
+	for _, job := range result {
+		jobList = append(jobList, &models.BackgroundJob{
+			ID:            job.ID,
+			Name:          job.Name,
+			Handler:       job.Handler,
+			Interval:      job.Interval,
+			Status:        job.Status,
+			LastTriggered: job.LastTriggered.Time,
+		})
+	}
+
+	return jobList, nil
 }
 
 func (r *backgroundJobRepository) WithoutTransaction(ctx context.Context, fn func(*sqlc_db.Queries) (interface{}, error)) (interface{}, error) {
@@ -99,13 +132,13 @@ func (r *backgroundJobRepository) WithoutTransaction(ctx context.Context, fn fun
 func (r *backgroundJobRepository) WithTransaction(ctx context.Context, fn func(*sqlc_db.Queries) (interface{}, error)) (interface{}, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "[WithTransaction] - BeginTx Error")
 	}
 	q := sqlc_db.New(tx)
 	res, err := fn(q)
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, errors.Wrapf(err, "[WithTransaction] - fn(q) Error")
 	}
 	return res, tx.Commit()
 }

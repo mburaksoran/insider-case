@@ -28,7 +28,6 @@ func NewHttpClient(appConfig *config.AppConfig, lgr *zap.SugaredLogger) service.
 			HTTPClient: &http.Client{
 				Timeout: 15 * time.Second,
 			},
-			Logger:       lgr,
 			RetryWaitMin: 500 * time.Millisecond,
 			RetryWaitMax: 5 * time.Second,
 			RetryMax:     3,

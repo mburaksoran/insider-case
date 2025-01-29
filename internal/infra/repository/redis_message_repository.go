@@ -2,15 +2,14 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/bsm/redislock"
 	"github.com/mburaksoran/insider-case/internal/domain/models"
 	"github.com/mburaksoran/insider-case/internal/domain/repository"
 	"github.com/mburaksoran/insider-case/internal/infra/engines"
+	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
-	"log"
 	"time"
 )
 
@@ -36,12 +35,12 @@ func (r *redisMessageRepository) Set(ctx context.Context, key string, value mode
 	lock := r.lockRedis(ctx)
 	if lock == nil {
 		fmt.Println(lock)
-		return errors.New("Could not obtain lock!")
+		return errors.New("[Set] - Could not obtain lock!")
 	}
 	defer lock.Release(ctx)
 	err := r.RedisClient.Set(ctx, key, value, TTL).Err()
 	if err != nil {
-		fmt.Println(err)
+		r.logger.Errorf("[Set] - Error on setting messageReceiveHistory Err: %s", err.Error())
 		return err
 	}
 	return nil
@@ -53,11 +52,11 @@ func (r *redisMessageRepository) lockRedis(ctx context.Context) *redislock.Lock 
 	lock, err := locker.Obtain(ctx, "lock-key", time.Millisecond*100, &redislock.Options{
 		RetryStrategy: backoff,
 	})
-	if err == redislock.ErrNotObtained {
-		fmt.Println("Could not obtain lock!")
+	if errors.Is(err, redislock.ErrNotObtained) {
+		r.logger.Warnf("[lockRedis] - Could not obtain lock!")
 		return nil
 	} else if err != nil {
-		log.Fatalln(err)
+		r.logger.Errorf("[lockRedis] - Error on obtaining lock Err: %s", err.Error())
 		return nil
 	}
 	return lock

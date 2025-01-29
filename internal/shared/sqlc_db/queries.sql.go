@@ -60,7 +60,15 @@ type CreateMessageParams struct {
 	MessageReceivedID    uuid.NullUUID
 }
 
-func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error) {
+type CreateMessageRow struct {
+	ID                   uuid.UUID
+	Content              string
+	RecipientPhoneNumber string
+	Status               string
+	MessageReceivedID    uuid.NullUUID
+}
+
+func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (CreateMessageRow, error) {
 	row := q.db.QueryRowContext(ctx, createMessage,
 		arg.ID,
 		arg.Content,
@@ -68,7 +76,7 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 		arg.Status,
 		arg.MessageReceivedID,
 	)
-	var i Message
+	var i CreateMessageRow
 	err := row.Scan(
 		&i.ID,
 		&i.Content,
@@ -115,6 +123,40 @@ func (q *Queries) GetDueJobs(ctx context.Context) ([]Job, error) {
 	return items, nil
 }
 
+const getJobs = `-- name: GetJobs :many
+SELECT id, name, handler, interval, status, last_triggered FROM jobs
+`
+
+func (q *Queries) GetJobs(ctx context.Context) ([]Job, error) {
+	rows, err := q.db.QueryContext(ctx, getJobs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Job
+	for rows.Next() {
+		var i Job
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Handler,
+			&i.Interval,
+			&i.Status,
+			&i.LastTriggered,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getNotSendedMessages = `-- name: GetNotSendedMessages :many
 SELECT id, content, recipient_phone_number, status, message_received_id
 FROM messages
@@ -124,15 +166,23 @@ ORDER BY created_at ASC
 FOR UPDATE SKIP LOCKED
 `
 
-func (q *Queries) GetNotSendedMessages(ctx context.Context) ([]Message, error) {
+type GetNotSendedMessagesRow struct {
+	ID                   uuid.UUID
+	Content              string
+	RecipientPhoneNumber string
+	Status               string
+	MessageReceivedID    uuid.NullUUID
+}
+
+func (q *Queries) GetNotSendedMessages(ctx context.Context) ([]GetNotSendedMessagesRow, error) {
 	rows, err := q.db.QueryContext(ctx, getNotSendedMessages)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Message
+	var items []GetNotSendedMessagesRow
 	for rows.Next() {
-		var i Message
+		var i GetNotSendedMessagesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Content,
@@ -151,6 +201,59 @@ func (q *Queries) GetNotSendedMessages(ctx context.Context) ([]Message, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const getSendedMessages = `-- name: GetSendedMessages :many
+SELECT id, content, recipient_phone_number, status, message_received_id
+FROM messages
+WHERE status = 'sent'
+`
+
+type GetSendedMessagesRow struct {
+	ID                   uuid.UUID
+	Content              string
+	RecipientPhoneNumber string
+	Status               string
+	MessageReceivedID    uuid.NullUUID
+}
+
+func (q *Queries) GetSendedMessages(ctx context.Context) ([]GetSendedMessagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSendedMessages)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSendedMessagesRow
+	for rows.Next() {
+		var i GetSendedMessagesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Content,
+			&i.RecipientPhoneNumber,
+			&i.Status,
+			&i.MessageReceivedID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateAllJobsStatus = `-- name: UpdateAllJobsStatus :exec
+UPDATE jobs
+SET status = $1
+`
+
+func (q *Queries) UpdateAllJobsStatus(ctx context.Context, status string) error {
+	_, err := q.db.ExecContext(ctx, updateAllJobsStatus, status)
+	return err
 }
 
 const updateJobLastTriggered = `-- name: UpdateJobLastTriggered :exec

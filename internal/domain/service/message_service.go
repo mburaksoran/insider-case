@@ -2,10 +2,11 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"github.com/mburaksoran/insider-case/internal/domain/types"
+
 	"github.com/google/uuid"
-	"log"
+	"github.com/pkg/errors"
 
 	"github.com/mburaksoran/insider-case/internal/app/service"
 	"github.com/mburaksoran/insider-case/internal/domain/models"
@@ -27,8 +28,7 @@ func (s *messageService) CreateMessage(ctx context.Context, msg models.Message) 
 	_, err := s.messageRepository.WithoutTransaction(ctx, func(queries *sqlc_db.Queries) (interface{}, error) {
 		result, err := s.messageRepository.CreateMessage(ctx, queries, msg)
 		if err != nil {
-			log.Printf("Error while creating Job: %v", err)
-			return nil, err
+			return nil, errors.Wrapf(err, "[CreateMessage] - CreateMessage Error")
 		}
 		return result, nil
 	})
@@ -40,16 +40,15 @@ func (s *messageService) GetMessageToSend(ctx context.Context) ([]*models.Messag
 	result, err := s.messageRepository.WithTransaction(ctx, func(q *sqlc_db.Queries) (interface{}, error) {
 		jobs, err := s.messageRepository.GetMessageNotSent(ctx, q)
 		if err != nil {
-			log.Printf("Error while getting messages: %v", err)
-			return nil, err
+			return nil, errors.Wrapf(err, "[GetMessageToSend] - GetMessageNotSent Error")
 		}
 		if len(jobs) < 1 {
 			return nil, nil
 		}
 		for _, job := range jobs {
-			updateErr := s.messageRepository.UpdateMessageStatus(ctx, q, job.ID, "processing") //TODO create new const for status
+			updateErr := s.messageRepository.UpdateMessageStatus(ctx, q, job.ID, types.MessageStatusInProgress) //TODO create new const for status
 			if updateErr != nil {
-				return nil, errors.New(fmt.Sprintf("errors while updating message status JobId: %s error: %s", job.ID, err.Error()))
+				return nil, errors.Wrapf(err, fmt.Sprintf("[UpdateMessageStatus] - UpdateMessageStatus error status JobId: %s", job.ID))
 			}
 		}
 		return jobs, nil
@@ -68,11 +67,27 @@ func (s *messageService) UpdateMessageStatus(ctx context.Context, uuid uuid.UUID
 	_, err := s.messageRepository.WithoutTransaction(ctx, func(queries *sqlc_db.Queries) (interface{}, error) {
 		err := s.messageRepository.UpdateMessageStatus(ctx, queries, uuid, status)
 		if err != nil {
-			log.Printf("Error while creating Job: %v", err)
-			return nil, err
+			return nil, errors.Wrapf(err, "[UpdateMessageStatus] - UpdateMessageStatus Error")
 		}
 		return nil, nil
 	})
 
 	return err
+}
+
+func (s *messageService) GetSendMessage(ctx context.Context) ([]*models.Message, error) {
+	result, err := s.messageRepository.WithoutTransaction(ctx, func(queries *sqlc_db.Queries) (interface{}, error) {
+		res, err := s.messageRepository.GetSendMessages(ctx, queries)
+		if err != nil {
+			return nil, errors.Wrapf(err, "[GetSendMessage] - GetSendMessages Error")
+		}
+		return res, nil
+	})
+	var messageList []*models.Message
+
+	if result != nil {
+		messageList = result.([]*models.Message)
+		return messageList, err
+	}
+	return nil, err
 }

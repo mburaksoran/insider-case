@@ -3,7 +3,10 @@ package repository
 import (
 	"context"
 	"database/sql"
+
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
+
 	"github.com/mburaksoran/insider-case/internal/domain/models"
 	"github.com/mburaksoran/insider-case/internal/domain/repository"
 	"github.com/mburaksoran/insider-case/internal/shared/sqlc_db"
@@ -25,13 +28,13 @@ func (r *messageRepository) WithoutTransaction(ctx context.Context, fn func(*sql
 func (r *messageRepository) WithTransaction(ctx context.Context, fn func(*sqlc_db.Queries) (interface{}, error)) (interface{}, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "[WithTransaction] - BeginTx Error")
 	}
 	q := sqlc_db.New(tx)
 	res, err := fn(q)
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, errors.Wrapf(err, "[WithTransaction] - fn(q) Error")
 	}
 	return res, tx.Commit()
 }
@@ -46,7 +49,7 @@ func (r *messageRepository) CreateMessage(ctx context.Context, queries *sqlc_db.
 	})
 
 	if err != nil {
-		return false, err
+		return false, errors.Wrapf(err, "[CreateMessage] - Errors while CreateMessage")
 	}
 	return true, nil
 }
@@ -55,7 +58,7 @@ func (r *messageRepository) GetMessageNotSent(ctx context.Context, queries *sqlc
 
 	result, err := queries.GetNotSendedMessages(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "[GetMessageNotSent] - Errors while GetNotSendedMessages")
 	}
 	var msgList = []*models.Message{}
 	for _, msg := range result {
@@ -78,7 +81,27 @@ func (r *messageRepository) UpdateMessageStatus(ctx context.Context, queries *sq
 		ID:     id,
 	})
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "[UpdateMessageStatus] - Errors while UpdateMessageStatus")
 	}
 	return nil
+}
+
+func (r *messageRepository) GetSendMessages(ctx context.Context, queries *sqlc_db.Queries) ([]*models.Message, error) {
+
+	res, err := queries.GetSendedMessages(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "[GetSendMessages] - Errors while GetSendedMessages")
+	}
+	var messageList []*models.Message
+	for _, msg := range res {
+		messageList = append(messageList, &models.Message{
+			ID:                   msg.ID,
+			Content:              msg.Content,
+			RecipientPhoneNumber: msg.RecipientPhoneNumber,
+			Status:               msg.Status,
+			MessageReceivedId:    msg.MessageReceivedID.UUID,
+		})
+	}
+
+	return messageList, nil
 }

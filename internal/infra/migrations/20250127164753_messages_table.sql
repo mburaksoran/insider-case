@@ -1,6 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 SELECT 'up SQL query';
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE messages
 (
     id                     UUID PRIMARY KEY,

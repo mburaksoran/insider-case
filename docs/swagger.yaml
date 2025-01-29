@@ -1,0 +1,15 @@
+basePath: /
+host: localhost:3000
+info:
+  contact:
+    email: support@insider.com
+    name: API Support
+  description: This is a sample server for Insider Case Study.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Insider Case Study
+  version: "1.0"
+paths: {}
+swagger: "2.0"
