@@ -33,8 +33,6 @@ This project is a system that manages the active/inactive status of jobs based o
 1. **Requirements**:
    - Go 1.23.5 or higher
    - Docker and Docker Compose (for running Vault and other services)
-   - PostgreSQL
-   - Prometheus & Grafana (For monitoring metrics)
 
 2. **Configuration**:
    - Configuration details (e.g., database connection, worker count) are fetched from Vault, which is started alongside the project using Docker Compose.
@@ -47,6 +45,10 @@ This project is a system that manages the active/inactive status of jobs based o
     ```
 
    - The application will automatically fetch its configuration from Vault.
+   - You can access the api with 
+   ```bash
+   http://localhost:8080/swagger/index.html
+    ```
 
 4. **API Endpoints**:
    - **Start Job**: `PUT /jobs/start`
