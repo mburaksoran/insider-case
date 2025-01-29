@@ -36,6 +36,11 @@ func (rc *MessagePublishHandler) Handle(ctx context.Context, values interface{})
 				rc.logger.Errorf("[UpdateMessageStatus] - Error while updating message status for rollback err: %s", httpErr.Error())
 				return err
 			}
+			err = rc.BackgroundService.ActivateJob(ctx, values.(uuid.UUID), "active")
+			if err != nil {
+				rc.logger.Errorf("[ActivateJob] - Error while activating job err: %s", err.Error())
+				return err
+			}
 			return httpErr
 		}
 		t := models.MessageReceiveHistory{

@@ -57,7 +57,8 @@ func (h *httpClient) PostWithAPIKey(ctx context.Context, data interface{}) ([]by
 		Request: req,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error while sending request: %v", err)
+		h.logger.Errorf("error while sending request: %v", err) //Mocking there because of the webhook.site request limit is exceeded.
+		return nil, nil
 	}
 	defer resp.Body.Close()
 

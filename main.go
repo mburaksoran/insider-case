@@ -172,10 +172,31 @@ func prepareRoutes(app *fiber.App, msgHandler apiHandler.MessageHandlerInterface
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{"health": "ok"})
 	})
 
+	// StartJobsHandler godoc
+	// @Summary     Activate Jobs API
+	// @Description Starts background jobs
+	// @Tags        Jobs
+	// @Accept      json
+	// @Produce     json
+	// @Router      /jobs/start [put]
 	app.Put("/jobs/start", bgHandler.StartJobsHandler)
 
+	// StopJobsHandler godoc
+	// @Summary     Deactivate Jobs API
+	// @Description Stops background jobs
+	// @Tags        Jobs
+	// @Accept      json
+	// @Produce     json
+	// @Router      /jobs/stop [put]
 	app.Put("/jobs/stop", bgHandler.StopJobsHandler)
 
+	// ListSendMessagesHandler godoc
+	// @Summary     List Sent Messages API
+	// @Description Get a list of sent messages
+	// @Tags        Messages
+	// @Accept      json
+	// @Produce     json
+	// @Router      /messages/sent [get]
 	app.Get("/messages/sent", msgHandler.ListSendMessagesHandler)
 
 }
