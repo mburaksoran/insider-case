@@ -6,7 +6,7 @@ This project is a system that manages the active/inactive status of jobs based o
 
 - **Go 1.23.5**: The project is written in Go (version 1.23.5).
 - **PostgreSQL**: Used to store the status of jobs and messages.
-- **Vault**: Used for as parameter store.
+- **Vault**: Used for secret management and parameter store.
 - **SQLC**: Used to manage database operations in a type-safe manner.
 - **Grafana & Prometheus**: Used for monitoring system performance and visualizing metrics.
 - **Loki**: Used for monitoring logs.
@@ -45,10 +45,8 @@ This project is a system that manages the active/inactive status of jobs based o
     ```
 
    - The application will automatically fetch its configuration from Vault.
-   - You can access the api with 
-   ```bash
-   http://localhost:8080/swagger/index.html
-    ```
+   - You can access the api with
+     Click [here](http://localhost:8080/swagger/index.html) to view the Swagger UI.
 
 4. **API Endpoints**:
    - **Start Job**: `PUT /jobs/start`
