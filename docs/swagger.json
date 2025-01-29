@@ -1,0 +1,189 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "insider-case-study",
+    "description": "API documentation for insider case study",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Localhost Server"
+    }
+  ],
+  "paths": {
+    "/jobs/start": {
+      "put": {
+        "summary": "ActivateJobs",
+        "operationId": "ActivateJobs",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "OK"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/stop": {
+      "put": {
+        "summary": "DeActivateJobs",
+        "operationId": "DeActivateJobs",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "OK"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages/sent": {
+      "get": {
+        "summary": "GetSentMessages",
+        "operationId": "GetSentMessages",
+        "responses": {
+          "200": {
+            "description": "List of Sent Messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "example": "7503e84b-dc1f-49ff-9381-876a6a6ac1fb"
+                      },
+                      "content": {
+                        "type": "string",
+                        "example": "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+                      },
+                      "recipient_phone_number": {
+                        "type": "string",
+                        "example": "+901234567890"
+                      },
+                      "status": {
+                        "type": "string",
+                        "example": "sent"
+                      },
+                      "message_received_id": {
+                        "type": "string",
+                        "example": "00000000-0000-0000-0000-000000000000"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health-check": {
+      "get": {
+        "summary": "HeathCheck",
+        "operationId": "HeathCheck",
+        "responses": {
+          "200": {
+            "description": "Health check status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "services": {
+                      "type": "object",
+                      "properties": {
+                        "postgres": {
+                          "type": "object",
+                          "properties": {
+                            "Name": {
+                              "type": "string",
+                              "example": "postgres"
+                            },
+                            "Status": {
+                              "type": "string",
+                              "example": "healthy"
+                            }
+                          }
+                        },
+                        "redis": {
+                          "type": "object",
+                          "properties": {
+                            "Name": {
+                              "type": "string",
+                              "example": "redis"
+                            },
+                            "Status": {
+                              "type": "string",
+                              "example": "healthy"
+                            }
+                          }
+                        },
+                        "vault": {
+                          "type": "object",
+                          "properties": {
+                            "Name": {
+                              "type": "string",
+                              "example": "vault"
+                            },
+                            "Status": {
+                              "type": "string",
+                              "example": "healthy"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "healthy"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health-alive": {
+      "get": {
+        "summary": "HeathAlive",
+        "operationId": "HeathAlive",
+        "responses": {
+          "200": {
+            "description": "Heath Alive Status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "health": {
+                      "type": "string",
+                      "example": "ok"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

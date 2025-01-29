@@ -1,0 +1,12 @@
+version: "2"
+sql:
+  - schema: "internal/shared/sqlc/schema.sql"
+    queries: "internal/shared/sqlc/queries.sql"
+    engine: "postgresql"
+    gen:
+      go:
+        package: "sqlc_db"
+        out: "internal/shared/sqlc_db"
+        overrides:
+          - db_type: "uuid"
+            go_type: "github.com/google/uuid.UUID"
