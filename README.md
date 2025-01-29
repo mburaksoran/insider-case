@@ -56,6 +56,13 @@ This project is a system that manages the active/inactive status of jobs based o
    - **HealthAlive**: `GET /health-alive`
 
 ---
+## Swagger.io Access
+
+You can access the swagger documentation details with the following url:
+
+- **Access URL**: `http://localhost:8080/swagger/index.html`
+
+---
 
 ## Redis UI Access
 
